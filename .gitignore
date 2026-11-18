@@ -1,0 +1,31 @@
+# Python virtual environments
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Airflow local logs and sqlite DB
+airflow.cfg
+webserver_config.py
+airflow.db*
+*.db*
+logs/
+orchestration/*.db*
+orchestration/*.generated
+
+# Kafka binaries (downloaded archive/binaries)
+kafka/
+
+# Raw and processed lakehouse data (avoid pushing large binary datasets to GitHub)
+data/bronze/
+data/silver/
+data/gold/
+
+# OS and IDE metadata
+.DS_Store
+.idea/
+.vscode/
+*.swp
