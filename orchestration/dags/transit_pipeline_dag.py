@@ -9,13 +9,10 @@ except ImportError:
     from airflow.providers.standard.operators.python import PythonOperator
     from airflow.providers.standard.operators.bash import BashOperator
 
-# Path references: support both Docker container mount and direct host execution
-if os.path.exists("/opt/airflow/cde_project"):
-    CDE_ROOT = "/opt/airflow/cde_project"
-else:
-    CDE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-
-VENV_PYTHON = os.path.join(CDE_ROOT, ".venv/bin/python")
+# Path references
+CDE_ROOT = "/mnt/HDD/MDEP-CDE Project/CDE"
+CONDA_ENV = "/home/deep/anaconda3/envs/cde-py311"
+ENV_PYTHON = os.path.join(CONDA_ENV, "bin/python")
 
 default_args = {
     "owner": "cde_admin",
@@ -59,13 +56,13 @@ with DAG(
     # Task 2: PySpark Silver Transformation (Deduplication & Parquet format)
     task_silver = BashOperator(
         task_id="run_pyspark_silver_transformation",
-        bash_command=f'"{VENV_PYTHON}" "{CDE_ROOT}/transformation/to_silver.py"',
+        bash_command=f'export JAVA_HOME="{CONDA_ENV}" && export PATH="$JAVA_HOME/bin:$PATH" && "{ENV_PYTHON}" "{CDE_ROOT}/transformation/to_silver.py"',
     )
 
     # Task 3: PySpark Gold Aggregations (Route Metrics & Congestion Hotspots)
     task_gold = BashOperator(
         task_id="run_pyspark_gold_aggregations",
-        bash_command=f'"{VENV_PYTHON}" "{CDE_ROOT}/transformation/to_gold.py"',
+        bash_command=f'export JAVA_HOME="{CONDA_ENV}" && export PATH="$JAVA_HOME/bin:$PATH" && "{ENV_PYTHON}" "{CDE_ROOT}/transformation/to_gold.py"',
     )
 
     # Define DAG execution dependency chain: Sensor -> Silver -> Gold
