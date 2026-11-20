@@ -22,6 +22,7 @@ else:
 
 S3_BUCKET = "cde-transit-lakehouse-221950623036-ap-southeast-2"
 S3_REGION = "ap-southeast-2"
+CDE_ENV = os.environ.get("CDE_ENVIRONMENT", "local").lower()
 
 default_args = {
     "owner": "cde_admin",
@@ -33,32 +34,49 @@ default_args = {
 }
 
 def check_bronze_data_sensor(**kwargs):
-    """Verifies bronze data exists in S3 or local disk.
-    If today's data is not uploaded yet, syncs/uses the most recent available date.
+    """Verifies bronze data exists.
+    - If CDE_ENVIRONMENT == 'cloud': checks Amazon S3.
+    - If CDE_ENVIRONMENT == 'local': checks local data/bronze/ directory.
     """
-    s3 = boto3.client("s3", region_name=S3_REGION)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    # 1. Check if S3 already has data for today
-    prefix_today = f"bronze/date={today}/"
-    resp = s3.list_objects_v2(Bucket=S3_BUCKET, Prefix=prefix_today)
-    
-    if resp.get("KeyCount", 0) > 0:
-        print(f"Verified: Bronze data exists in S3 for today ({today}).")
-        return
+    if CDE_ENV == "cloud":
+        s3 = boto3.client("s3", region_name=S3_REGION)
+        prefix_today = f"bronze/date={today}/"
+        resp = s3.list_objects_v2(Bucket=S3_BUCKET, Prefix=prefix_today)
+        
+        if resp.get("KeyCount", 0) > 0:
+            print(f"[Cloud] Verified: Bronze data exists in S3 for today ({today}).")
+            return
 
-    # 2. Check for any previous date partition in S3
-    resp_all = s3.list_objects_v2(Bucket=S3_BUCKET, Prefix="bronze/")
-    contents = resp_all.get("Contents", [])
-    
-    if contents:
-        latest_file = sorted(contents, key=lambda x: x["LastModified"])[-1]["Key"]
-        print(f"Verified: Found recent Bronze data in S3: {latest_file}.")
-        return
+        resp_all = s3.list_objects_v2(Bucket=S3_BUCKET, Prefix="bronze/")
+        contents = resp_all.get("Contents", [])
+        if contents:
+            latest_file = sorted(contents, key=lambda x: x["LastModified"])[-1]["Key"]
+            print(f"[Cloud] Verified: Found recent Bronze data in S3: {latest_file}.")
+            return
 
-    # 3. If S3 has no data, ensure folder prefix exists so it's ready
-    s3.put_object(Bucket=S3_BUCKET, Key=f"bronze/date={today}/")
-    print(f"Created S3 folder prefix: bronze/date={today}/")
+        s3.put_object(Bucket=S3_BUCKET, Key=f"bronze/date={today}/")
+        print(f"[Cloud] Created S3 folder prefix: bronze/date={today}/")
+    else:
+        # Local execution: check local data/bronze/
+        bronze_base = os.path.join(CDE_ROOT, "data/bronze")
+        today_file = os.path.join(bronze_base, f"date={today}", "bronze_stream.jsonl")
+        
+        if os.path.exists(today_file) and os.path.getsize(today_file) > 0:
+            print(f"[Local] Verified: Bronze data exists locally for today ({today}).")
+            return
+            
+        # Fallback to any recent local date partition
+        if os.path.exists(bronze_base):
+            dates = sorted([d for d in os.listdir(bronze_base) if d.startswith("date=")])
+            if dates:
+                latest_path = os.path.join(bronze_base, dates[-1], "bronze_stream.jsonl")
+                if os.path.exists(latest_path) and os.path.getsize(latest_path) > 0:
+                    print(f"[Local] Verified: Found latest local Bronze partition {dates[-1]}.")
+                    return
+                    
+        raise FileNotFoundError(f"[Local] No Bronze data found in {bronze_base}")
 
 with DAG(
     dag_id="mbta_transit_lakehouse_pipeline",
@@ -88,11 +106,11 @@ with DAG(
         bash_command=f'"{ENV_PYTHON}" "{CDE_ROOT}/transformation/to_gold.py"',
     )
 
-    # Task 4: Sync Medallion Lakehouse data to Amazon S3
-    task_s3_sync = BashOperator(
-        task_id="sync_lakehouse_to_s3",
-        bash_command=f'aws s3 sync "{CDE_ROOT}/data/" "s3://{S3_BUCKET}/" --region ap-southeast-2',
+    # Task 4: Complete Pipeline Status Notification
+    task_complete = BashOperator(
+        task_id="pipeline_complete",
+        bash_command=f'echo "[{CDE_ENV.upper()} MODE] Medallion Transit Lakehouse Pipeline completed successfully!"',
     )
 
-    # Define DAG execution dependency chain: Sensor -> Silver -> Gold
-    task_sensor >> task_silver >> task_gold >> task_s3_sync
+    # Define DAG execution dependency chain: Sensor -> Silver -> Gold -> Complete
+    task_sensor >> task_silver >> task_gold >> task_complete

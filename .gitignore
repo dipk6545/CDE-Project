@@ -28,4 +28,8 @@ data/gold/
 .DS_Store
 .idea/
 .vscode/
+
+# Secrets and environment files
+.env
+.env.*
 *.swp

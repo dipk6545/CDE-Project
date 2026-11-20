@@ -35,6 +35,23 @@ def ensure_data_from_s3(target_date: str):
             else:
                 print("No bronze files found in S3.")
 
+def sync_output_to_s3(local_dir: str, s3_prefix: str):
+    """If CDE_ENVIRONMENT == 'cloud', syncs the output Parquet files directly to Amazon S3."""
+    env_mode = os.environ.get("CDE_ENVIRONMENT", "local").lower()
+    if env_mode != "cloud":
+        print(f"[Local Mode] Parquet saved locally at {local_dir}. S3 upload skipped.")
+        return
+
+    s3 = boto3.client("s3", region_name=S3_REGION)
+    print(f"[Cloud Mode] Syncing Silver Parquet to S3: s3://{S3_BUCKET}/{s3_prefix}")
+    for root, _, files in os.walk(local_dir):
+        for file in files:
+            full_path = os.path.join(root, file)
+            rel_path = os.path.relpath(full_path, local_dir)
+            s3_key = f"{s3_prefix}/{rel_path}".replace("//", "/")
+            s3.upload_file(full_path, S3_BUCKET, s3_key)
+    print(f"[Cloud Mode] Silver layer successfully pushed to S3: s3://{S3_BUCKET}/{s3_prefix}")
+
 def get_spark_session():
     return (
         SparkSession.builder
@@ -99,6 +116,9 @@ def run_silver_transformation(target_date: str = None):
         .mode("overwrite")
         .parquet(out_dir)
     )
+
+    # If cloud environment, ship output directly to Amazon S3
+    sync_output_to_s3(out_dir, f"silver/date={target_date}")
 
     print("PySpark Silver Transformation Complete:")
     print(f" - Input rows : {initial_count}")
