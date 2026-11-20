@@ -1,12 +1,12 @@
 # Airflow on Kubernetes configuration (Helm values for Airflow 2.10)
 executor: "KubernetesExecutor"
 
-# Use our published production container image from GitHub Container Registry
+# Production container image from GitHub Container Registry
 images:
   airflow:
     repository: ghcr.io/dipk6545/cde-airflow
     tag: "latest"
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
 
 # Webserver UI credentials for Airflow 2.10
 webserver:
@@ -19,23 +19,11 @@ webserver:
     lastName: User
     password: admin
 
-# Inject AWS S3 credentials and Environment flag into all Airflow pods
-env:
-  - name: AWS_ACCESS_KEY_ID
-    value: ""
-  - name: AWS_SECRET_ACCESS_KEY
-    value: ""
-  - name: AWS_DEFAULT_REGION
-    value: "ap-southeast-2"
-  - name: AIRFLOW__CORE__LOAD_EXAMPLES
-    value: "False"
-  - name: CDE_ENVIRONMENT
-    value: "cloud"
+# Pull secrets from Kubernetes Secret 'cde-aws-secrets'
+extraEnvFrom: |
+  - secretRef:
+      name: cde-aws-secrets
 
 # Enable built-in PostgreSQL database for Airflow metadata inside the cluster
 postgresql:
   enabled: true
-  image:
-    registry: docker.io
-    repository: library/postgres
-    tag: 16-alpine
