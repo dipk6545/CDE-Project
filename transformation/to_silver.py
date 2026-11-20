@@ -3,9 +3,37 @@ from datetime import datetime, timezone
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, when
 
+import boto3
+
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 BRONZE_DIR = os.path.join(BASE_DIR, "data", "bronze")
 SILVER_DIR = os.path.join(BASE_DIR, "data", "silver")
+S3_BUCKET = "cde-transit-lakehouse-221950623036-ap-southeast-2"
+S3_REGION = "ap-southeast-2"
+
+def ensure_data_from_s3(target_date: str):
+    """Downloads Bronze data from S3 to local disk if running in isolated container."""
+    local_dir = os.path.join(BRONZE_DIR, f"date={target_date}")
+    os.makedirs(local_dir, exist_ok=True)
+    local_file = os.path.join(local_dir, "bronze_stream.jsonl")
+
+    if not os.path.exists(local_file) or os.path.getsize(local_file) == 0:
+        s3 = boto3.client("s3", region_name=S3_REGION)
+        # Try target date in S3
+        prefix = f"bronze/date={target_date}/bronze_stream.jsonl"
+        try:
+            print(f"Syncing from S3: s3://{S3_BUCKET}/{prefix} -> {local_file}")
+            s3.download_file(S3_BUCKET, prefix, local_file)
+        except Exception:
+            # Fallback to the latest available bronze file in S3
+            resp = s3.list_objects_v2(Bucket=S3_BUCKET, Prefix="bronze/")
+            files = [obj["Key"] for obj in resp.get("Contents", []) if obj["Key"].endswith(".jsonl")]
+            if files:
+                latest_key = sorted(files)[-1]
+                print(f"Target date not in S3. Using latest S3 partition: {latest_key}")
+                s3.download_file(S3_BUCKET, latest_key, local_file)
+            else:
+                print("No bronze files found in S3.")
 
 def get_spark_session():
     return (
@@ -20,6 +48,8 @@ def get_spark_session():
 def run_silver_transformation(target_date: str = None):
     if not target_date:
         target_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    ensure_data_from_s3(target_date)
 
     input_path = os.path.join(BRONZE_DIR, f"date={target_date}", "*.jsonl")
     out_dir = os.path.join(SILVER_DIR, f"date={target_date}")
