@@ -1,12 +1,12 @@
 # Airflow on Kubernetes configuration (Helm values for Airflow 2.10)
 executor: "KubernetesExecutor"
 
-# Use our custom image that has Java 17, PySpark, DAGs, and AWS CLI
+# Use our published production container image from GitHub Container Registry
 images:
   airflow:
-    repository: cde-airflow-custom
-    tag: "1.0"
-    pullPolicy: IfNotPresent
+    repository: ghcr.io/dipk6545/cde-airflow
+    tag: "latest"
+    pullPolicy: Always
 
 # Webserver UI credentials for Airflow 2.10
 webserver:
