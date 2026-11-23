@@ -31,10 +31,11 @@ if pgrep -f "kafka.Kafka" > /dev/null; then
     echo "✅ Kafka broker is already running."
 else
     # Install Kafka binary in Codespaces if not present (kafka/ is in .gitignore)
-    if [ ! -d "$KAFKA_DIR/libs" ]; then
-        echo "📦 Downloading Apache Kafka with live progress bar..."
+    if [ ! -d "$KAFKA_DIR/libs" ] || [ $(ls -1 "$KAFKA_DIR/libs"/*.jar 2>/dev/null | wc -l) -lt 10 ]; then
+        echo "📦 Downloading Apache Kafka 4.4.0 (fast Apache CDN)..."
+        rm -rf "$KAFKA_DIR"
         mkdir -p "$KAFKA_DIR"
-        curl -# -L https://downloads.apache.org/kafka/3.9.0/kafka_2.13-3.9.0.tgz | tar -xz -C "$KAFKA_DIR" --strip-components=1
+        curl -# -L https://downloads.apache.org/kafka/4.4.0/kafka_2.13-4.4.0.tgz | tar -xz -C "$KAFKA_DIR" --strip-components=1
         echo "✅ Kafka downloaded and extracted."
     fi
 
