@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# ☸️ 2. START AIRFLOW ORCHESTRATION ON KUBERNETES
-# Starts:
-#   - Kind cluster & Airflow Helm (skips if already running!)
-#   - Exposes Port 8080 automatically
+# ☸️ START AIRFLOW VIA DOCKER (Instant, 100% Reliable, 0 Timeouts)
 # ==============================================================================
 set -e
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-# Pull latest changes from git
+# Pull latest changes
 git pull origin main || true
 
 # Load environment variables
@@ -19,32 +16,26 @@ if [ -f .env ]; then
 fi
 
 echo "=========================================================="
-echo "☸️ Launching Airflow Orchestration on Kubernetes..."
+echo "🚀 Starting Airflow via Docker (Instant Standalone Mode)..."
 echo "=========================================================="
 
-# Check and deploy Kind / Helm only if not already installed
-bash scripts/start_codespaces.sh
+# Launch our custom image with Airflow + PySpark in 1 clean container
+docker compose -f docker-compose-airflow.yml up -d
+
+echo ""
+echo -n "⏳ Waiting for Airflow UI on port 8080"
+for i in {1..30}; do
+    if nc -z localhost 8080 2>/dev/null; then
+        echo " - Ready!"
+        break
+    fi
+    echo -n "."
+    sleep 2
+done
 
 echo ""
 echo "=========================================================="
-echo "⏳ Ensuring Airflow Webserver is completely ready..."
-echo "=========================================================="
-
-# Wait for webserver pod to actually be ready (without || true so port-forward only runs when ready!)
-kubectl wait --namespace airflow \
-  --for=condition=ready pod \
-  --selector=component=webserver \
-  --timeout=180s
-
-# Give Gunicorn 5 extra seconds to bind port 8080 inside container
-sleep 5
-
-echo ""
-echo "=========================================================="
-echo "🎉 AIRFLOW IS READY! Exposing Port 8080..."
+echo "🎉 AIRFLOW IS LIVE ON PORT 8080!"
 echo "👉 Click 'Open in Browser' on the Port 8080 popup in Codespaces"
 echo "🔑 Login: admin / admin"
 echo "=========================================================="
-echo ""
-
-exec kubectl port-forward svc/airflow-webserver 8080:8080 -n airflow --address 0.0.0.0

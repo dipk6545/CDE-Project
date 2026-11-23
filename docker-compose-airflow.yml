@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  airflow:
+    image: ghcr.io/dipk6545/cde-airflow:latest
+    container_name: cde-airflow
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=False
+      - _AIRFLOW_WWW_USER_CREATE=True
+      - _AIRFLOW_WWW_USER_USERNAME=admin
+      - _AIRFLOW_WWW_USER_PASSWORD=admin
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://1fb8021435a401e40d8d501be741ffe29f219f974d865312499f6c4ff95ea46d:sk_5vmfylBkkmgBuTxQOcXAV@db.prisma.io:5432/postgres?sslmode=require
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-ap-southeast-2}
+      - CDE_ENVIRONMENT=cloud
+    volumes:
+      - ./orchestration/dags:/opt/airflow/dags
+      - ./transformation:/opt/airflow/transformation
+      - ./data:/opt/airflow/data
+    command: standalone
