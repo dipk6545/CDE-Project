@@ -30,13 +30,21 @@ KAFKA_DIR="$PROJECT_ROOT/kafka"
 if pgrep -f "kafka.Kafka" > /dev/null; then
     echo "✅ Kafka broker is already running."
 else
-    if [ ! -d "/tmp/kraft-broker-logs" ] && [ ! -d "/tmp/kraft-combined-logs" ]; then
-        echo "🔧 Formatting Kafka KRaft storage..."
-        bash "$KAFKA_DIR/setup_kraft.sh" > "$LOG_DIR/kafka_setup.log" 2>&1 || true
+    # Install Kafka binary in Codespaces if not present (kafka/ is in .gitignore)
+    if [ ! -d "$KAFKA_DIR/libs" ]; then
+        echo "📦 Downloading Apache Kafka 3.9.0..."
+        mkdir -p "$KAFKA_DIR"
+        curl -sL https://archive.apache.org/dist/kafka/3.9.0/kafka_2.13-3.9.0.tgz | tar -xz -C "$KAFKA_DIR" --strip-components=1
     fi
 
-    echo "▶️ Launching Kafka server daemon..."
-    nohup bash "$KAFKA_DIR/start_kafka.sh" > "$LOG_DIR/kafka.log" 2>&1 &
+    # Reset any corrupted log directory and format cleanly
+    rm -rf /tmp/kraft-combined-logs /tmp/kraft-broker-logs
+    echo "🔧 Formatting Kafka KRaft storage..."
+    CLUSTER_ID=$("$KAFKA_DIR/bin/kafka-storage.sh" random-uuid)
+    "$KAFKA_DIR/bin/kafka-storage.sh" format -t "$CLUSTER_ID" -c "$KAFKA_DIR/config/kraft/server.properties" > "$LOG_DIR/kafka_setup.log" 2>&1 || true
+
+    echo "▶️ Launching Kafka server daemon in KRaft mode..."
+    nohup "$KAFKA_DIR/bin/kafka-server-start.sh" "$KAFKA_DIR/config/kraft/server.properties" > "$LOG_DIR/kafka.log" 2>&1 &
     
     echo -n "⏳ Waiting for Kafka broker on port 9092"
     for i in {1..30}; do
