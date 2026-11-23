@@ -33,6 +33,10 @@ if ! command -v helm &> /dev/null; then
     echo "✅ Helm installed."
 fi
 
+# Ensure apache-airflow helm repo is added
+helm repo add apache-airflow https://airflow.apache.org 2>/dev/null || true
+helm repo update apache-airflow 2>/dev/null || true
+
 # 1. Start / Verify Kind cluster
 if ! kind get clusters 2>/dev/null | grep -q "^cde-cluster$"; then
     echo "☸️ Creating Kind cluster 'cde-cluster'..."
