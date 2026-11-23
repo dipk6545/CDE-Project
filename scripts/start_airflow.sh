@@ -27,13 +27,17 @@ bash scripts/start_codespaces.sh
 
 echo ""
 echo "=========================================================="
-echo "⏳ Ensuring Airflow Webserver is ready..."
+echo "⏳ Ensuring Airflow Webserver is completely ready..."
 echo "=========================================================="
 
+# Wait for webserver pod to actually be ready (without || true so port-forward only runs when ready!)
 kubectl wait --namespace airflow \
   --for=condition=ready pod \
   --selector=component=webserver \
-  --timeout=60s || true
+  --timeout=180s
+
+# Give Gunicorn 5 extra seconds to bind port 8080 inside container
+sleep 5
 
 echo ""
 echo "=========================================================="
