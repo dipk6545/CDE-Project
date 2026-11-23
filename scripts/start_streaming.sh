@@ -81,5 +81,10 @@ echo "🎉 STREAMING INGESTION ACTIVE!"
 echo "• Kafka:      Active on localhost:9092"
 echo "• Producer:   Fetching live MBTA vehicles"
 echo "• Consumer:   Syncing micro-batches to AWS S3 Bronze"
-echo "• Logs:       tail -f logs_runtime/consumer.log"
 echo "=========================================================="
+echo ""
+echo "📊 Launching live terminal stream visualizer..."
+echo "👉 Press [Ctrl+C] at any time to return to terminal (streaming continues in background)"
+echo ""
+sleep 1
+exec python3 scripts/monitor_stream.py
