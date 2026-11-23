@@ -32,9 +32,10 @@ if pgrep -f "kafka.Kafka" > /dev/null; then
 else
     # Install Kafka binary in Codespaces if not present (kafka/ is in .gitignore)
     if [ ! -d "$KAFKA_DIR/libs" ]; then
-        echo "📦 Downloading Apache Kafka 3.9.0..."
+        echo "📦 Downloading Apache Kafka (fast CDN mirror)..."
         mkdir -p "$KAFKA_DIR"
-        curl -sL https://archive.apache.org/dist/kafka/3.9.0/kafka_2.13-3.9.0.tgz | tar -xz -C "$KAFKA_DIR" --strip-components=1
+        curl -sL https://downloads.apache.org/kafka/3.9.0/kafka_2.13-3.9.0.tgz | tar -xz -C "$KAFKA_DIR" --strip-components=1 2>/dev/null || \
+        curl -sL https://archive.apache.org/dist/kafka/3.8.1/kafka_2.13-3.8.1.tgz | tar -xz -C "$KAFKA_DIR" --strip-components=1
     fi
 
     # Reset any corrupted log directory and format cleanly
