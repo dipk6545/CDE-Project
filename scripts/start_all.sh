@@ -12,6 +12,10 @@ set -e
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
+# Automatically pull latest changes from GitHub first
+echo "🔄 Pulling latest changes from GitHub (main)..."
+git pull origin main || true
+
 # Load environment variables
 if [ -f .env ]; then
     export $(grep -v '^#' .env | xargs)
