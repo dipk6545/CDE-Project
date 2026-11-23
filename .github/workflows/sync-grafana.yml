@@ -1,0 +1,52 @@
+name: Sync Grafana Dashboard
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'orchestration/grafana_transit_dashboard.json'
+  workflow_dispatch:
+
+jobs:
+  sync-dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy Dashboard to Grafana Cloud
+        run: |
+          python3 -c '
+          import json, os, urllib.request
+
+          token = os.environ.get("GRAFANA_API_KEY")
+          url = "https://charmingjuniper1515.grafana.net/api/dashboards/db"
+
+          with open("orchestration/grafana_transit_dashboard.json") as f:
+              board = json.load(f)
+
+          payload = json.dumps({
+              "dashboard": board,
+              "overwrite": True,
+              "message": "Automated sync from GitHub Actions commit"
+          }).encode("utf-8")
+
+          req = urllib.request.Request(
+              url,
+              data=payload,
+              headers={
+                  "Authorization": f"Bearer {token}",
+                  "Content-Type": "application/json"
+              },
+              method="POST"
+          )
+
+          try:
+              with urllib.request.urlopen(req) as resp:
+                  print("Grafana API Sync Response:", resp.read().decode())
+          except urllib.error.HTTPError as e:
+              print(f"HTTP Error {e.code}: {e.read().decode()}")
+              raise e
+          '
+        env:
+          GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }}
