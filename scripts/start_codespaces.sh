@@ -63,12 +63,16 @@ kubectl create secret generic cde-aws-secrets -n airflow \
   --from-literal=AIRFLOW__KUBERNETES_ENVIRONMENT_VARIABLES__CDE_ENVIRONMENT="cloud" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-# 7. Deploy Airflow via Helm
-echo "🚢 Deploying Airflow via Helm..."
-helm upgrade --install airflow apache-airflow/airflow \
-  --namespace airflow \
-  --version 1.16.0 \
-  -f orchestration/k8s-values.yaml
+# 7. Check if Airflow is already deployed via Helm
+if helm status airflow -n airflow >/dev/null 2>&1; then
+    echo "✅ Airflow Helm release is already installed and running. Skipping Helm deployment!"
+else
+    echo "🚢 Deploying Airflow via Helm (first time setup)..."
+    helm upgrade --install airflow apache-airflow/airflow \
+      --namespace airflow \
+      --version 1.16.0 \
+      -f orchestration/k8s-values.yaml
+fi
 
 echo ""
 echo "=========================================================="
