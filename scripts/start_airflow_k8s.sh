@@ -19,6 +19,20 @@ echo "=========================================================="
 echo "☸️ Launching Airflow on Kubernetes (Kind Cluster + Helm)..."
 echo "=========================================================="
 
+# 0. Install Kind & Helm if missing in this environment
+if ! command -v kind &> /dev/null; then
+    echo "📦 Installing Kind..."
+    curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
+    chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind
+    echo "✅ Kind installed."
+fi
+
+if ! command -v helm &> /dev/null; then
+    echo "📦 Installing Helm..."
+    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+    echo "✅ Helm installed."
+fi
+
 # 1. Start / Verify Kind cluster
 if ! kind get clusters 2>/dev/null | grep -q "^cde-cluster$"; then
     echo "☸️ Creating Kind cluster 'cde-cluster'..."
