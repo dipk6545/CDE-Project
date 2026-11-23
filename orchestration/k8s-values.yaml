@@ -24,6 +24,17 @@ extraEnvFrom: |
   - secretRef:
       name: cde-aws-secrets
 
-# Enable built-in PostgreSQL database for Airflow metadata inside the cluster
+# Connect directly to Prisma Cloud PostgreSQL (Production DB)
+# Disabling in-cluster PostgreSQL prevents Docker Hub ErrImagePull & timeouts!
 postgresql:
-  enabled: true
+  enabled: false
+
+data:
+  metadataConnection:
+    user: 1fb8021435a401e40d8d501be741ffe29f219f974d865312499f6c4ff95ea46d
+    pass: sk_5vmfylBkkmgBuTxQOcXAV
+    protocol: postgresql
+    host: db.prisma.io
+    port: 5432
+    db: postgres
+    sslmode: require
