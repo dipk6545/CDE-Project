@@ -106,14 +106,18 @@ def main():
                 output.append(f"  {DIM}(Listening on consumer group 'cde-bronze-group'...){RESET}")
 
             output.append(f"{CYAN}──────────────────────────────────────────────────────────────────────────────────{RESET}")
-            output.append(f"{DIM}Press [Ctrl+C] to exit monitor (Streaming keeps running in background){RESET}")
+            output.append(f"{YELLOW}{BOLD}Press [Ctrl+C] to stop all streaming processes and Kafka{RESET}")
 
             sys.stdout.write("\n".join(output) + "\n")
             sys.stdout.flush()
             time.sleep(1.5)
 
     except KeyboardInterrupt:
-        print(f"\n{GREEN}Exited monitor. Kafka streaming is still running in the background.{RESET}")
+        print(f"\n{YELLOW}🛑 Stopping all streaming processes (Producer, Consumer & Kafka)...{RESET}")
+        os.system("pkill -f 'streaming/producer.py' 2>/dev/null || true")
+        os.system("pkill -f 'streaming/consumer.py' 2>/dev/null || true")
+        os.system("docker compose -f docker-compose-kafka.yml stop >/dev/null 2>&1 || true")
+        print(f"{GREEN}✅ All streaming processes and Kafka container stopped successfully.{RESET}")
 
 if __name__ == "__main__":
     main()
