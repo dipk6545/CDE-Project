@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# CDE Transit Lakehouse: Master Pipeline Startup Script
-# 1. Starts Apache Kafka in KRaft mode (background daemon)
-# 2. Starts MBTA Real-Time Streaming (Producer & Consumer) in background
-# 3. Starts / Connects Kubernetes Kind cluster & deploys Airflow Helm
-# 4. Exposes Airflow UI on port 8080
+# CDE Transit Lakehouse: Single All-In-One Startup Script
+# Automatically launches:
+# 1. Kafka (KRaft mode) in the background
+# 2. Live MBTA Producer & Consumer (streaming to S3) in the background
+# 3. Kind Kubernetes cluster & Airflow via Helm
+# 4. Port-forward on 8080 so you can click the browser link immediately!
 # ==============================================================================
 set -e
 
@@ -36,7 +37,7 @@ else
     echo "▶️ Launching Kafka server daemon..."
     nohup bash "$KAFKA_DIR/start_kafka.sh" > "$LOG_DIR/kafka.log" 2>&1 &
     
-    # Wait for Kafka port 9092 to be ready
+    # Wait for Kafka port 9092
     echo -n "⏳ Waiting for Kafka broker on port 9092"
     for i in {1..30}; do
         if nc -z localhost 9092 2>/dev/null || (exec 3<>/dev/tcp/localhost/9092) 2>/dev/null; then
@@ -74,21 +75,32 @@ else
     nohup "$PYTHON_BIN" streaming/producer.py > "$LOG_DIR/producer.log" 2>&1 &
 fi
 
-echo "✅ Live bus data is now streaming into Kafka & syncing to S3 Bronze!"
+echo "✅ Live bus data is streaming into Kafka & syncing to S3 Bronze!"
 
 echo ""
 echo "=========================================================="
-echo "☸️ 3. Starting Airflow Orchestration on Kubernetes..."
+echo "☸️ 3. Deploying Airflow on Kubernetes (Kind + Helm)..."
 echo "=========================================================="
 
-# Run the verified Kubernetes & Airflow Helm deployer
 bash scripts/start_codespaces.sh
 
 echo ""
 echo "=========================================================="
-echo "🎉 ALL SYSTEMS RUNNING!"
-echo "• Kafka:      Active on localhost:9092"
-echo "• Streaming:  Producer & Consumer active in background"
-echo "• S3 Sync:    Streaming to S3 Bronze partition"
-echo "• Airflow:    Active on Kubernetes (Kind)"
+echo "⏳ Waiting for Airflow Webserver to be ready..."
 echo "=========================================================="
+
+kubectl wait --namespace airflow \
+  --for=condition=ready pod \
+  --selector=component=webserver \
+  --timeout=180s || true
+
+echo ""
+echo "=========================================================="
+echo "🎉 ALL SYSTEMS READY! Launching Port-Forward on Port 8080..."
+echo "👉 Click 'Open in Browser' on the Port 8080 popup in Codespaces"
+echo "🔑 Login: admin / admin"
+echo "=========================================================="
+echo ""
+
+# Automatically open port 8080 so you do not have to type anything else!
+exec kubectl port-forward svc/airflow-webserver 8080:8080 -n airflow --address 0.0.0.0
