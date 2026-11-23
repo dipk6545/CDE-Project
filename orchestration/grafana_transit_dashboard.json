@@ -268,21 +268,21 @@
       "id": 4,
       "options": {
         "displayLabels": [
-          "percent",
-          "value"
+          "name",
+          "percent"
         ],
         "legend": {
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
-        "pieType": "pie",
+        "pieType": "donut",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
           "fields": "",
-          "values": false
+          "values": true
         },
         "tooltip": {
           "mode": "single",
