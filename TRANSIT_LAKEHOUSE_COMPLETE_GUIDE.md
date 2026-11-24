@@ -211,6 +211,10 @@ CDE/
 ### 4.4 Serving Database & Grafana Observability
 * **Prisma Cloud PostgreSQL 17.2**:
   - Serves as the operational metadata store for Airflow's 50 internal tables.
+  - **7-Day Retention Window & Storage Optimization**:
+    - PostgreSQL acts strictly as a **lightweight operational serving layer** holding only the **last 7 days of rolling aggregated KPI scorecards** (~5 to 10 summary rows per pipeline run, under 1 MB of disk space total).
+    - It does **not** store historical raw logs or bulky row-level vehicle data.
+    - Full historical data spanning months and years is permanently retained in **Amazon S3** in columnar Parquet format, preventing PostgreSQL storage exhaustion and maintaining sub-second query performance.
   - Serves as the high-speed serving layer for business analytics:
     ```sql
     CREATE TABLE IF NOT EXISTS kpi_route_performance (
