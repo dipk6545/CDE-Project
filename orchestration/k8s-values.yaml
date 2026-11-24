@@ -24,17 +24,17 @@ extraEnvFrom: |
   - secretRef:
       name: cde-aws-secrets
 
-# Connect directly to Prisma Cloud PostgreSQL (Production DB)
+# Connect directly to Neon Serverless PostgreSQL (Production DB)
 # Disabling in-cluster PostgreSQL prevents Docker Hub ErrImagePull & timeouts!
 postgresql:
   enabled: false
 
 data:
   metadataConnection:
-    user: 1fb8021435a401e40d8d501be741ffe29f219f974d865312499f6c4ff95ea46d
-    pass: sk_5vmfylBkkmgBuTxQOcXAV
+    user: neondb_owner
+    pass: npg_M3Aapf0SXbYT
     protocol: postgresql
-    host: db.prisma.io
+    host: ep-jolly-river-bia0d9s7-pooler.c-5.ap-southeast-1.aws.neon.tech
     port: 5432
-    db: postgres
+    db: neondb
     sslmode: require

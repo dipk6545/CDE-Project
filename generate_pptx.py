@@ -87,7 +87,7 @@ flow_steps = [
     ("1. Ingestion Layer", "MBTA REST API v3\n• Public Transit Vehicles\n• Kafka Producer\n  (streaming/producer.py)\n• Kafka Broker (KRaft)\n  Topic: transit-vehicles"),
     ("2. Streaming Sink", "Kafka Consumer\n  (streaming/consumer.py)\n• Dual-mode buffering\n• 50 records / 60s\n• AWS S3 Bronze Storage\n  (Sydney ap-southeast-2)"),
     ("3. Lakehouse Medallion", "Apache PySpark 3.5.3\n• Bronze: Raw JSONL\n• Silver: Cleaned Parquet\n  (to_silver.py)\n• Gold: KPI Aggregates\n  (to_gold.py)"),
-    ("4. Orchestration", "Apache Airflow 2.10.3\n• Kubernetes (Kind)\n• KubernetesExecutor\n• 4-stage pipeline DAG\n• Serving DB:\n  Prisma PostgreSQL"),
+    ("4. Orchestration", "Apache Airflow 2.10.3\n• Kubernetes (Kind)\n• KubernetesExecutor\n• 4-stage pipeline DAG\n• Serving DB:\n  Neon PostgreSQL"),
     ("5. Observability", "Grafana Cloud & Local\n• Executive Transit Control\n• Live Speed & Status\n• Delay Bottlenecks\n• CI/CD Dashboards-as-Code\n  (GitHub Actions sync)")
 ]
 
@@ -255,7 +255,7 @@ p_r2 = tf_r.add_paragraph()
 p_r2.text = ("• Kubernetes (Kind Cluster): 'cde-cluster' with worker and control-plane nodes.\n\n"
              "• Helm Deployment: Official Apache Airflow 2.10.3 Helm Chart configured with KubernetesExecutor.\n\n"
              "• Custom Docker Image: ghcr.io/dipk6545/cde-airflow:latest packaged with Java 17, Apache PySpark 3.5.3, AWS CLI, and PostgreSQL drivers.\n\n"
-             "• Prisma Cloud Serverless PostgreSQL: Production metadata backend (50 Airflow tables) + business KPI serving layer.\n\n"
+             "• Neon Serverless PostgreSQL: Production metadata backend (50 Airflow tables) + business KPI serving layer.\n\n"
              "• AWS S3 (Sydney ap-southeast-2): Scalable Medallion Lakehouse object storage.\n\n"
              "• GitHub Codespaces Automation: Automated single-command startup script (scripts/start_codespaces.sh).")
 p_r2.font.size = Pt(11)
@@ -383,7 +383,7 @@ p_s1.font.color.rgb = DARK_BLUE
 summary_points = [
     ("End-to-End Scalability", "Built a complete modern data stack streaming live MBTA transit vehicle positions through Kafka, persisting to an AWS S3 Medallion Lakehouse, and computing KPIs with PySpark."),
     ("Resilient Kubernetes Orchestration", "Deployed Apache Airflow 2.10.3 on Kubernetes (Kind) using the KubernetesExecutor, ensuring isolated task pods, automated retries, and reproducible Cloud environments."),
-    ("Production Serving Separation", "Decoupled analytical storage (AWS S3 Sydney) from operational serving (Prisma Cloud PostgreSQL), ensuring sub-second Grafana query performance without overloading the database."),
+    ("Production Serving Separation", "Decoupled analytical storage (AWS S3 Sydney) from operational serving (Neon Serverless PostgreSQL), ensuring sub-second Grafana query performance without overloading the database."),
     ("Automated Dashboards-as-Code", "Integrated GitHub Actions CI/CD with Grafana Cloud API, automating dashboard deployments directly from version control."),
     ("Actionable Civic Intelligence", "Empowers transit operations with real-time fleet health visibility and pinpoints exact delay hotspots for urban transit intervention.")
 ]

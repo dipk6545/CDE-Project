@@ -28,7 +28,7 @@ The system adheres to the **Medallion Lakehouse Architecture** pattern deployed 
 └────────────────────────────────────┬─────────────────────────────────────────────┘
                                      │
                                      ▼ (Aggregated Scorecards)
-                    [Prisma Serverless PostgreSQL 17.2]
+                    [Neon Serverless PostgreSQL 18]
                                      │
                                      ▼ (Live Queries)
                           [Grafana Cloud Dashboard]
@@ -38,7 +38,7 @@ The system adheres to the **Medallion Lakehouse Architecture** pattern deployed 
 * **Storage Layer**: Amazon S3 (Sydney `ap-southeast-2`) stores all raw JSONL and Snappy Parquet partitions.
 * **Distributed Compute**: Apache PySpark 3.5.3 handles schema validation, deduplication, and KPI aggregations.
 * **Orchestration**: Apache Airflow 2.10 on Kubernetes (Kind + Helm) with `KubernetesExecutor`.
-* **Serving Layer**: Prisma Cloud PostgreSQL holds a **rolling 7-day window** of KPI scorecards.
+* **Serving Layer**: Neon Serverless PostgreSQL holds a **rolling 7-day window** of KPI scorecards.
 * **Observability**: Grafana Cloud monitoring network speeds, fleet moving/stopped split, and transit delay bottlenecks via **CI/CD Dashboards-as-Code**.
 
 ---

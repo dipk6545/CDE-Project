@@ -3,7 +3,7 @@
 ---
 
 ## 📌 Executive Summary
-The **MBTA Transit Lakehouse** is an enterprise-grade cloud data engineering platform that processes live public transit telemetry from the Massachusetts Bay Transportation Authority (MBTA). It ingests streaming GPS vehicle coordinates, stores and organizes them via a **Medallion Lakehouse Architecture** on **Amazon S3 Sydney**, performs distributed batch aggregations using **Apache PySpark**, orchestrates workflows via **Apache Airflow on Kubernetes (Kind + Helm)** with the `KubernetesExecutor`, serves KPIs via **Prisma Cloud PostgreSQL**, and delivers real-time analytics to **Grafana Cloud** with automated **CI/CD Dashboards-as-Code**.
+The **MBTA Transit Lakehouse** is an enterprise-grade cloud data engineering platform that processes live public transit telemetry from the Massachusetts Bay Transportation Authority (MBTA). It ingests streaming GPS vehicle coordinates, stores and organizes them via a **Medallion Lakehouse Architecture** on **Amazon S3 Sydney**, performs distributed batch aggregations using **Apache PySpark**, orchestrates workflows via **Apache Airflow on Kubernetes (Kind + Helm)** with the `KubernetesExecutor`, serves KPIs via **Neon Serverless PostgreSQL**, and delivers real-time analytics to **Grafana Cloud** with automated **CI/CD Dashboards-as-Code**.
 
 ---
 
@@ -79,9 +79,9 @@ The **MBTA Transit Lakehouse** is an enterprise-grade cloud data engineering pla
                          | (Writes Aggregated Scorecards)
                          v
 +-------------------------------------------------------------------------------+
-|                      5. SERVING DATABASE (Prisma Cloud PostgreSQL)            |
+|                      5. SERVING DATABASE (Neon Serverless PostgreSQL)            |
 |                                                                               |
-|  • Host: db.prisma.io:5432 / postgres (PostgreSQL 17.2)                       |
+|  • Host: ep-jolly-river-bia0d9s7-pooler.c-5.ap-southeast-1.aws.neon.tech:5432 / postgres (PostgreSQL 17.2)                       |
 |  • Stores Airflow Metadata (50 tables)                                        |
 |  • Serving Tables:                                                            |
 |    - kpi_route_performance (route_id, avg_speed_mph, total_pings, updated_at) |
@@ -113,14 +113,14 @@ The **MBTA Transit Lakehouse** is an enterprise-grade cloud data engineering pla
 | **Docker & Docker Compose** | Containerization | Standardizes Kafka broker runtime and Airflow production images. | `docker-compose-kafka.yml`, `orchestration/Dockerfile` |
 | **GitHub Actions** | CI/CD Automation | Continuous container image builds and automated Dashboards-as-Code syncing. | `.github/workflows/build-image.yml`, `.github/workflows/sync-grafana.yml` |
 | **GitHub Container Registry (GHCR)** | Container Image Shelf | Stores and serves versioned production Airflow images. | `ghcr.io/dipk6545/cde-airflow:latest` |
-| **Grafana Cloud** | BI & Observability | Real-time transit executive command dashboard with dynamic time filters. | `https://charmingjuniper1515.grafana.net` (Datasource: Prisma PostgreSQL) |
+| **Grafana Cloud** | BI & Observability | Real-time transit executive command dashboard with dynamic time filters. | `https://charmingjuniper1515.grafana.net` (Datasource: Neon PostgreSQL) |
 | **Helm** | Kubernetes Package Manager | Declarative deployment of production Apache Airflow Helm Chart. | Chart: `apache-airflow/airflow` (v1.16.0), values: `k8s-values.yaml` |
 | **HTTPX** | Async/Sync HTTP Client | Fetches real-time vehicle GPS, trip, and stop metadata from MBTA REST API. | In `streaming/producer.py` with 10s timeouts and keep-alive connections |
 | **Java (OpenJDK 17)** | JVM Runtime | Powers Apache PySpark worker nodes and Apache Kafka internal execution. | Pre-installed in `ghcr.io/dipk6545/cde-airflow:latest` (`JAVA_HOME`) |
 | **Kind (Kubernetes-in-Docker)** | Local Kubernetes Cluster | Creates multi-node local Kubernetes clusters inside Docker containers. | Cluster: `cde-cluster`, context: `kind-cde-cluster` |
 | **KubernetesExecutor** | Airflow Scheduler Engine | Launches an isolated, temporary Kubernetes worker pod per DAG task. | Auto-cleans pods on task completion, eliminating idle resource waste |
 | **MBTA V3 API** | External Transit Source | Live vehicle telemetry source (latitude, longitude, speed, status, route). | `https://api-v3.mbta.com/vehicles?include=trip,stop` |
-| **PostgreSQL (Prisma Cloud)** | Serverless Relational DB | Operational metadata store for Airflow + fast serving layer for Grafana. | PostgreSQL 17.2 at `db.prisma.io:5432/postgres?sslmode=require` |
+| **PostgreSQL (Prisma Cloud)** | Serverless Relational DB | Operational metadata store for Airflow + fast serving layer for Grafana. | PostgreSQL 17.2 at `ep-jolly-river-bia0d9s7-pooler.c-5.ap-southeast-1.aws.neon.tech:5432/neondb?sslmode=require` |
 | **Python 3.11** | Core Programming Language | Powers producers, consumers, PySpark transforms, Airflow DAGs, and monitors. | Standardized runtime across local environments and container images |
 
 ---
@@ -146,7 +146,7 @@ CDE/
 │   │   └── transit_pipeline_dag.py          # 4-stage master Airflow DAG
 │   ├── Dockerfile                           # Custom Airflow + Java 17 + PySpark 3.5.3 image definition
 │   ├── grafana_transit_dashboard.json       # Version-controlled Grafana dashboard definition
-│   └── k8s-values.yaml                      # Production Helm values for KubernetesExecutor & Prisma DB
+│   └── k8s-values.yaml                      # Production Helm values for KubernetesExecutor & Neon DB
 ├── scripts/
 │   ├── monitor_stream.py                    # Live terminal visualizer (speeds, vehicles, S3 uploads)
 │   ├── start_all.sh                         # Master all-in-one startup automation
@@ -194,7 +194,7 @@ CDE/
   - Reads Silver Parquet dataset using PySpark.
   - **KPI 1 (Route Performance)**: Computes `avg_speed_mph`, `total_pings`, `stopped_count`, and `in_transit_count` grouped by `route_id`.
   - **KPI 2 (Congestion Hotspots)**: Filters stops with $\ge 2$ visits and computes `avg_speed_near_stop` and `zero_speed_pings` (idle vehicles stuck in traffic).
-  - Saves partitioned Gold Parquet tables in S3 and writes aggregated summary rows directly into Prisma PostgreSQL serving tables.
+  - Saves partitioned Gold Parquet tables in S3 and writes aggregated summary rows directly into Neon PostgreSQL serving tables.
 
 ### 4.3 Orchestration & Kubernetes Architecture
 * **`orchestration/dags/transit_pipeline_dag.py`**:
@@ -209,7 +209,7 @@ CDE/
   - Bundles PySpark 3.5.3, AWS CLI, Boto3, and PostgreSQL drivers directly inside the image, allowing standalone execution without host file mounting.
 
 ### 4.4 Serving Database & Grafana Observability
-* **Prisma Cloud PostgreSQL 17.2**:
+* **Neon Serverless PostgreSQL 18**:
   - Serves as the operational metadata store for Airflow's 50 internal tables.
   - **7-Day Retention Window & Storage Optimization**:
     - PostgreSQL acts strictly as a **lightweight operational serving layer** holding only the **last 7 days of rolling aggregated KPI scorecards** (~5 to 10 summary rows per pipeline run, under 1 MB of disk space total).
@@ -271,7 +271,7 @@ To replicate a true decoupled enterprise cloud deployment and avoid memory press
      ```bash
      bash scripts/start_airflow_k8s.sh
      ```
-   - **What it runs**: Provisions a local Kind Kubernetes cluster (`cde-cluster`), deploys the official Apache Airflow Helm Chart with the `KubernetesExecutor`, connects to Prisma Cloud PostgreSQL, and forwards Port 8080.
+   - **What it runs**: Provisions a local Kind Kubernetes cluster (`cde-cluster`), deploys the official Apache Airflow Helm Chart with the `KubernetesExecutor`, connects to Neon Serverless PostgreSQL, and forwards Port 8080.
    - **Airflow Web UI**: Open forwarded Port 8080 (Login: `admin` / `admin`) and trigger `mbta_transit_lakehouse_pipeline`.
    - **Data Flow**: Task 1 reads the fresh Bronze stream uploaded by Codespace #1 from AWS S3, PySpark cleans it into Silver Parquet, computes Gold aggregates, and updates PostgreSQL!
 
