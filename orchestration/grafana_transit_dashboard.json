@@ -79,7 +79,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COALESCE(SUM(total_pings), 0) AS \"Total GPS Pings Processed\" FROM kpi_route_performance WHERE updated_at >= NOW() - INTERVAL '7 days';",
+          "rawSql": "SELECT COALESCE(SUM(total_pings), 0) AS \"Total GPS Pings Processed\" FROM kpi_route_performance WHERE updated_at BETWEEN $__timeFrom() AND $__timeTo();",
           "refId": "A"
         }
       ],
@@ -149,7 +149,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COALESCE(ROUND(AVG(avg_speed_mph)::numeric, 1), 0) AS \"Fleet Avg Speed (mph)\" FROM kpi_route_performance WHERE updated_at >= NOW() - INTERVAL '7 days';",
+          "rawSql": "SELECT COALESCE(ROUND(AVG(avg_speed_mph)::numeric, 1), 0) AS \"Fleet Avg Speed (mph)\" FROM kpi_route_performance WHERE updated_at BETWEEN $__timeFrom() AND $__timeTo();",
           "refId": "A"
         }
       ],
@@ -238,7 +238,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT route_id AS \"Transit Route\", ROUND(AVG(avg_speed_mph)::numeric, 1) AS \"Average Speed (mph)\" FROM kpi_route_performance WHERE updated_at >= NOW() - INTERVAL '7 days' GROUP BY route_id ORDER BY \"Average Speed (mph)\" DESC;",
+          "rawSql": "SELECT route_id AS \"Transit Route\", ROUND(AVG(avg_speed_mph)::numeric, 1) AS \"Average Speed (mph)\" FROM kpi_route_performance WHERE updated_at BETWEEN $__timeFrom() AND $__timeTo() GROUP BY route_id ORDER BY \"Average Speed (mph)\" DESC;",
           "refId": "A"
         }
       ],
@@ -299,7 +299,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT 'Stopped at Station' AS \"Status\", COALESCE(SUM(stopped_count), 0) AS \"Vehicles\" FROM kpi_route_performance WHERE updated_at >= NOW() - INTERVAL '7 days' UNION ALL SELECT 'In Transit (Moving)' AS \"Status\", COALESCE(SUM(in_transit_count), 0) AS \"Vehicles\" FROM kpi_route_performance WHERE updated_at >= NOW() - INTERVAL '7 days';",
+          "rawSql": "SELECT 'Stopped at Station' AS \"Status\", COALESCE(SUM(stopped_count), 0) AS \"Vehicles\" FROM kpi_route_performance WHERE updated_at BETWEEN $__timeFrom() AND $__timeTo() UNION ALL SELECT 'In Transit (Moving)' AS \"Status\", COALESCE(SUM(in_transit_count), 0) AS \"Vehicles\" FROM kpi_route_performance WHERE updated_at BETWEEN $__timeFrom() AND $__timeTo();",
           "refId": "A"
         }
       ],
@@ -366,7 +366,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT stop_id AS \"Bus Stop\", route_id AS \"Route\", ROUND(AVG(avg_speed_near_stop)::numeric, 1) AS \"Speed (mph)\", SUM(zero_speed_pings) AS \"Stuck Vehicles (Count)\" FROM kpi_congestion_hotspots WHERE updated_at >= NOW() - INTERVAL '7 days' GROUP BY stop_id, route_id ORDER BY \"Speed (mph)\" ASC;",
+          "rawSql": "SELECT stop_id AS \"Bus Stop\", route_id AS \"Route\", ROUND(AVG(avg_speed_near_stop)::numeric, 1) AS \"Speed (mph)\", SUM(zero_speed_pings) AS \"Stuck Vehicles (Count)\" FROM kpi_congestion_hotspots WHERE updated_at BETWEEN $__timeFrom() AND $__timeTo() GROUP BY stop_id, route_id ORDER BY \"Speed (mph)\" ASC;",
           "refId": "A"
         }
       ],
