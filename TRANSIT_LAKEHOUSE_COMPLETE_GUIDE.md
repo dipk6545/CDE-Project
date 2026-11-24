@@ -245,23 +245,42 @@ CDE/
 
 ---
 
-## 🚀 6. Step-by-Step Execution Guide
+## 🚀 6. Execution Modes (Local vs Dual-Codespace Cloud Architecture)
 
-### Mode A: Real-Time Streaming Ingestion
+This project supports two operational execution environments:
+
+### Option A: Dual-Codespace Cloud Architecture (Recommended for GitHub Codespaces)
+To replicate a true decoupled enterprise cloud deployment and avoid memory pressure on smaller virtual machines, the workload is partitioned across **two dedicated Codespaces communicating via Amazon S3**:
+
+1. **Codespace #1: Streaming & Ingestion Node (Kafka Broker + Streamers)**
+   - Dedicated exclusively to continuous real-time data ingestion.
+   - Command:
+     ```bash
+     bash scripts/start_streaming.sh
+     ```
+   - **What it runs**: Starts Kafka 3.8 in Docker, launches `producer.py` and `consumer.py`, opens the live terminal visualizer, and streams micro-batches directly to **AWS S3 Sydney** (`bronze/`).
+   - Press `Ctrl + C` at any time to cleanly stop Producer, Consumer, and Kafka.
+
+2. **Codespace #2: Orchestration & Compute Cluster (Kind + Airflow + PySpark)**
+   - Launched as a second independent Codespace (4-core / 16GB RAM recommended).
+   - Command:
+     ```bash
+     bash scripts/start_airflow_k8s.sh
+     ```
+   - **What it runs**: Provisions a local Kind Kubernetes cluster (`cde-cluster`), deploys the official Apache Airflow Helm Chart with the `KubernetesExecutor`, connects to Prisma Cloud PostgreSQL, and forwards Port 8080.
+   - **Airflow Web UI**: Open forwarded Port 8080 (Login: `admin` / `admin`) and trigger `mbta_transit_lakehouse_pipeline`.
+   - **Data Flow**: Task 1 reads the fresh Bronze stream uploaded by Codespace #1 from AWS S3, PySpark cleans it into Silver Parquet, computes Gold aggregates, and updates PostgreSQL!
+
+---
+
+### Option B: Unified Single-Machine Execution (Local Linux / High-Spec Host)
+On a local development machine with sufficient RAM and physical cores:
 ```bash
-# Start Docker Kafka, Producer, Consumer, and launch live terminal visualizer
+# Terminal 1: Real-Time Streaming Ingestion
 bash scripts/start_streaming.sh
 
-# Press [Ctrl+C] at any time to cleanly stop streaming, Producer, Consumer, and Kafka container
-```
-
-### Mode B: Airflow Orchestration on Kubernetes (Port 8080)
-```bash
-# Start Kind cluster, apply secrets, deploy Helm, and open Port 8080
+# Terminal 2: Kubernetes Airflow Orchestration
 bash scripts/start_airflow_k8s.sh
-
-# Open http://localhost:8080 (or Codespaces forwarded port)
-# Login: admin / admin -> Trigger DAG: mbta_transit_lakehouse_pipeline
 ```
 
 ---
